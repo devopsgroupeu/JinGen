@@ -1,0 +1,87 @@
+# .gitlab-ci.yml
+
+# Define stages for the pipeline
+stages:
+  - build
+# - test  # Optional: Add a test stage later
+# - push  # Combined push into build for simplicity here
+
+variables:
+  # Define the image name using GitLab predefined variables
+  # CI_REGISTRY_IMAGE is typically: registry.gitlab.com/your-group/your-project
+  # CI_COMMIT_REF_SLUG is the branch/tag name sanitized for use in URLs/tags
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  IMAGE_LATEST_TAG: $CI_REGISTRY_IMAGE:latest
+
+# Use the official Docker image to run Docker commands
+# Requires a runner with Docker capabilities (like GitLab.com shared runners or configured self-hosted runners)
+image: docker:latest
+
+services:
+  # Enable Docker-in-Docker (dind) service needed to build Docker images
+  - docker:dind
+
+before_script:
+  # Login to the GitLab Container Registry
+  # CI_REGISTRY_USER and CI_REGISTRY_PASSWORD are predefined secure variables
+  - echo "Logging into GitLab Container Registry..."
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  - echo "Login successful."
+
+build_image:
+  stage: build
+  script:
+    - echo "Building Docker image: $IMAGE_TAG"
+    # Build the Docker image using the Dockerfile in the current directory (.)
+    # Tag it with the specific branch/tag name
+    - docker build --pull -t "$IMAGE_TAG" .
+
+    - echo "Pushing image to registry: $IMAGE_TAG"
+    # Push the image with the specific tag
+    - docker push "$IMAGE_TAG"
+
+    # Optionally, also tag and push as 'latest' if on the default branch (e.g., main)
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+        echo "Tagging image as latest: $IMAGE_LATEST_TAG"
+        docker tag "$IMAGE_TAG" "$IMAGE_LATEST_TAG"
+        echo "Pushing latest image to registry: $IMAGE_LATEST_TAG"
+        docker push "$IMAGE_LATEST_TAG"
+      else
+        echo "Not on default branch ($CI_DEFAULT_BRANCH), skipping latest tag."
+      fi
+  # Optional: Control when this job runs
+  rules:
+    # Run on pushes to any branch
+    - if: $CI_COMMIT_BRANCH
+    # Run on pushes to any tag
+    - if: $CI_COMMIT_TAG
+
+# --- Optional: Add a test stage ---
+# test_script_in_container:
+#   stage: test
+#   needs: [build_image] # Ensure build runs first (if pushing in build stage isn't desired)
+#   before_script: [] # Override global before_script if not needed
+#   script:
+#     # Prepare dummy input/output dirs and data file for testing
+#     - mkdir test_templates test_data test_output
+#     - echo 'variable: "test_value"' > test_data/test.yaml
+#     - echo 'resource "null_resource" "test" { value = "{{ variable }}" }' > test_templates/test.tf.j2
+#     # Run the container, mounting local test dirs
+#     # Note: $IMAGE_TAG needs to be available, might require passing artifacts or adjusting logic
+#     # If build pushes, you can pull: docker pull $IMAGE_TAG
+#     - docker run --rm \
+#         -v "$(pwd)/test_templates":/app/templates \
+#         -v "$(pwd)/test_data":/app/data \
+#         -v "$(pwd)/test_output":/app/output \
+#         $IMAGE_TAG \ # Assumes image built and available locally or pulled
+#         --input-dir /app/templates \
+#         --output-dir /app/output \
+#         --data-file /app/data/test.yaml
+#     # Check if the output file was created and has expected content
+#     - test -f test_output/test.tf
+#     - grep 'value = "test_value"' test_output/test.tf
+#     # Cleanup
+#     - rm -rf test_templates test_data test_output
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # Only test on default branch, for example
