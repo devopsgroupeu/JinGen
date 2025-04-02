@@ -10,8 +10,25 @@ from jinja2 import Environment, FileSystemLoader, exceptions  # Requires Jinja2
 # --- Configuration ---
 DEFAULT_TEMPLATE_SUFFIX = ".tf.j2"
 OUTPUT_FILE_SUFFIX = ".tf"
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 LOG_LEVEL = logging.INFO  # Change to logging.DEBUG for more verbose output
+
+BANNER_ART = r"""
+
+████████╗███████╗██████╗ ██████╗  █████╗ ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+   ██║   █████╗  ██████╔╝██████╔╝███████║█████╗  ██║   ██║██████╔╝██║  ███╗█████╗  
+   ██║   ██╔══╝  ██╔══██╗██╔══██╗██╔══██║██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝  
+   ██║   ███████╗██║  ██║██║  ██║██║  ██║██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+
+                                      __          ___           ____           _____                 
+                                     / /  __ __  / _ \___ _  __/ __ \___  ___ / ___/______  __ _____ 
+                                    / _ \/ // / / // / -_) |/ / /_/ / _ \(_-</ (_ / __/ _ \/ // / _ \
+                                   /_.__/\_, / /____/\__/|___/\____/ .__/___/\___/_/  \___/\_,_/ .__/
+                                        /___/                     /_/                         /_/    
+
+"""
 
 # --- Logging Setup ---
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT, stream=sys.stdout)
@@ -21,9 +38,8 @@ logging.getLogger().addHandler(file_handler)
 
 logger = logging.getLogger(__name__)  # Use __name__ for logger identification
 
+
 # --- Core Functions ---
-
-
 def load_template_data(data_file_path: Path) -> dict:
     """Loads template variables from a YAML file."""
     logger.info(f"Attempting to load template data from: {data_file_path}")
@@ -169,9 +185,15 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
             f"No template files matching '*{DEFAULT_TEMPLATE_SUFFIX}' found in {input_dir}."
         )
 
+def display_banner():
+    """Prints the ASCII art banner."""
+    print(BANNER_ART)
+    print("-" * 105) # Add a separator line
+
 
 # --- Argument Parsing and Main Execution ---
 def main():
+    display_banner()
     parser = argparse.ArgumentParser(
         description="Render Jinja2 templates (e.g., for Terraform) using data from a YAML file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
