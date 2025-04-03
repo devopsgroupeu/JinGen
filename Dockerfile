@@ -2,7 +2,7 @@
 
 # Choose a suitable Python base image. Slim versions are smaller.
 # Use a specific version tag for reproducibility (e.g., 3.10, 3.11)
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Set the working directory inside the container
 WORKDIR /app

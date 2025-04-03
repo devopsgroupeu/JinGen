@@ -32,7 +32,7 @@ BANNER_ART = r"""
 
 # --- Logging Setup ---
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT, stream=sys.stdout)
-file_handler = logging.FileHandler("templating.log")
+file_handler = logging.FileHandler("template_tf.log")
 file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
 logging.getLogger().addHandler(file_handler)
 
