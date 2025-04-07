@@ -4,12 +4,13 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-import yaml  # Requires PyYAML
-from jinja2 import Environment, FileSystemLoader, exceptions  # Requires Jinja2
+import yaml
+from jinja2 import Environment, FileSystemLoader, exceptions
+import copy
+import json
 
 # --- Configuration ---
-DEFAULT_TEMPLATE_SUFFIX = ".tf.j2"
-OUTPUT_FILE_SUFFIX = ".tf"
+DEFAULT_TEMPLATE_SUFFIX = ".j2"
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 LOG_LEVEL = logging.INFO  # Change to logging.DEBUG for more verbose output
 
@@ -30,6 +31,33 @@ BANNER_ART = r"""
 
 """
 
+
+# --- Helper Functions ---
+def deep_merge(target: dict, source: dict) -> dict:
+    """
+    Recursively merges source dictionary into target dictionary.
+    If keys conflict, the value from the source dictionary takes precedence.
+    Handles nested dictionaries. Modifies target in place.
+    """
+    for key, value in source.items():
+        if isinstance(value, dict):
+            # Get node or create one
+            node = target.setdefault(key, {})
+            if isinstance(node, dict):
+                # Recurse for nested dictionaries
+                deep_merge(node, value)
+            else:
+                # If target's value for the key isn't a dict, overwrite it
+                # This handles cases where structure differs (e.g., dict overwriting a string)
+                target[key] = copy.deepcopy(
+                    value
+                )  # Use deepcopy for nested dicts from source
+        else:
+            # Overwrite value in target with value from source
+            target[key] = value  # Simple assignment works for non-dict values
+    return target
+
+
 # --- Logging Setup ---
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT, stream=sys.stdout)
 file_handler = logging.FileHandler("template_tf.log")
@@ -40,31 +68,52 @@ logger = logging.getLogger(__name__)  # Use __name__ for logger identification
 
 
 # --- Core Functions ---
-def load_template_data(data_file_path: Path) -> dict:
-    """Loads template variables from a YAML file."""
-    logger.info(f"Attempting to load template data from: {data_file_path}")
-    if not data_file_path.is_file():
-        logger.error(f"Data file not found: {data_file_path}")
-        raise FileNotFoundError(f"Data file not found: {data_file_path}")
+def load_and_merge_data(data_file_paths: list[Path]) -> dict:
+    """Loads data from multiple YAML files and merges them. Last file wins."""
+    merged_data = {}
+    logger.info(f"Loading and merging data from files (in order): {[str(p) for p in data_file_paths]}")
 
-    try:
-        with open(data_file_path, "r") as f:
-            data = yaml.safe_load(f)
-            if not isinstance(data, dict):
-                logger.error(
-                    f"Data file content is not a valid YAML dictionary: {data_file_path}"
-                )
-                raise ValueError("YAML content must be a dictionary (key-value pairs)")
-            logger.info(f"Successfully loaded data from {data_file_path}")
-            return data if data else {}  # Return empty dict if file is empty
-    except yaml.YAMLError as e:
-        logger.error(
-            f"Error parsing YAML data file {data_file_path}: {e}", exc_info=True
-        )
-        raise ValueError(f"Invalid YAML format in {data_file_path}") from e
-    except IOError as e:
-        logger.error(f"Error reading data file {data_file_path}: {e}", exc_info=True)
-        raise IOError(f"Could not read data file {data_file_path}") from e
+    for data_file_path in data_file_paths:
+        logger.info(f"Attempting to load data from: {data_file_path}")
+        if not data_file_path.is_file():
+            logger.error(f"Data file not found: {data_file_path}")
+            raise FileNotFoundError(f"Data file not found: {data_file_path}")
+
+        try:
+            with open(data_file_path, 'r') as f:
+                # Use safe_load which is recommended over load
+                current_data = yaml.safe_load(f)
+
+                # Handle empty YAML files gracefully (safe_load returns None)
+                if current_data is None:
+                    logger.warning(f"Data file is empty, skipping merge: {data_file_path}")
+                    continue # Skip to the next file
+
+                # Ensure the loaded data is a dictionary for merging
+                if not isinstance(current_data, dict):
+                    logger.error(f"Data file content is not a valid YAML dictionary (key-value map): {data_file_path}")
+                    raise ValueError(f"YAML content in {data_file_path} must be a dictionary")
+
+                logger.debug(f"Successfully loaded data from {data_file_path}, performing deep merge...")
+                # Perform the deep merge - modifies merged_data in place
+                deep_merge(merged_data, current_data)
+                logger.debug(f"Merge completed for {data_file_path}")
+
+        except yaml.YAMLError as e:
+            logger.error(f"Error parsing YAML data file {data_file_path}: {e}", exc_info=True)
+            raise ValueError(f"Invalid YAML format in {data_file_path}") from e
+        except IOError as e:
+            logger.error(f"Error reading data file {data_file_path}: {e}", exc_info=True)
+            raise IOError(f"Could not read data file {data_file_path}") from e
+        except Exception as e:
+             logger.error(f"An unexpected error occurred loading {data_file_path}: {e}", exc_info=True)
+             raise # Re-raise unexpected errors
+
+    logger.info("Finished loading and merging all data files.")
+    # Optionally log the final merged data structure at DEBUG level for verification
+    if logger.isEnabledFor(logging.DEBUG):
+         logger.debug(f"Final merged data:\n{json.dumps(merged_data, indent=2)}")
+    return merged_data
 
 
 def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
@@ -110,9 +159,7 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
         if template_path.is_file():
             template_files_found += 1
             relative_path = template_path.relative_to(input_dir)
-            output_filename = relative_path.with_suffix("").with_suffix(
-                OUTPUT_FILE_SUFFIX
-            )  # Remove .j2, add .tf
+            output_filename = relative_path.with_suffix("")  # Remove the suffix
             output_path = output_dir / output_filename
 
             logger.info(
@@ -185,10 +232,11 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
             f"No template files matching '*{DEFAULT_TEMPLATE_SUFFIX}' found in {input_dir}."
         )
 
+
 def display_banner():
     """Prints the ASCII art banner."""
     print(BANNER_ART)
-    print("-" * 105) # Add a separator line
+    print("-" * 105)  # Add a separator line
 
 
 # --- Argument Parsing and Main Execution ---
@@ -213,11 +261,12 @@ def main():
         help="Directory where the rendered Terraform files (*.tf) will be saved.",
     )
     parser.add_argument(
-        "-d",
-        "--data-file",
+        "-d", "--data-files",
         type=Path,
         required=True,
-        help="Path to the YAML file containing variables for templating.",
+        nargs='+',            # Accept one or more values
+        metavar='DATA_FILE',  # Display nicer variable name in help
+        help="One or more paths to YAML data files. Values from later files override earlier ones during merge."
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
 
@@ -229,13 +278,13 @@ def main():
         logger.debug("Debug logging enabled.")
 
     try:
-        # 1. Load Data
-        template_data = load_template_data(args.data_file)
+        # 1. Load and Merge Data (pass the list of files)
+        template_data = load_and_merge_data(args.data_files)
 
-        # 2. Process Templates
+        # 2. Process Templates (uses the merged data)
         process_templates(args.input_dir, args.output_dir, template_data)
 
-        logger.info("Script finished successfully.")
+        logger.info("TerraForge finished successfully.")
         sys.exit(0)
 
     except (FileNotFoundError, ValueError, OSError, Exception) as e:
