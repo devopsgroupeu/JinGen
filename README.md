@@ -3,7 +3,7 @@
 ```sh
 py src/template_tf.py \
     --input-dir ../../Packages/aws-premium/jinja/templates \
-    --output-dir output/ \
+    --output-dir ../../Packages/aws-premium/terraform \
     --data-files ../../Packages/aws-premium/jinja/data/00_base.yaml \
         ../../Packages/aws-premium/jinja/data/01_startup.yaml \
         ../../Packages/aws-premium/jinja/data/02_standard.yaml \
