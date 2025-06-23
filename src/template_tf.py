@@ -153,6 +153,7 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
     # --- Find and Process Templates ---
     template_files_found = 0
     templates_processed_successfully = 0
+    templates_skipped = 0
 
     # Iterate through files matching the suffix in the input directory
     for template_path in input_dir.glob(f"**/*{DEFAULT_TEMPLATE_SUFFIX}"):
@@ -182,6 +183,11 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
 
                 # Render the template with the provided data
                 rendered_content = template.render(template_data)
+
+                if not rendered_content.strip():
+                    logger.warning(f"Rendered content for {relative_path} is empty. Skipping file.")
+                    templates_skipped += 1
+                    continue
 
                 # Write the rendered content to the output file
                 with open(output_path, "w") as f_out:
@@ -223,7 +229,10 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
         logger.info(
             f"Successfully processed {templates_processed_successfully} templates."
         )
-        if templates_processed_successfully < template_files_found:
+        logger.info(
+            f"Skipped {templates_skipped} templates."
+        )
+        if (templates_processed_successfully + templates_skipped) < template_files_found:
             logger.warning(
                 f"{template_files_found - templates_processed_successfully} templates failed to process."
             )
