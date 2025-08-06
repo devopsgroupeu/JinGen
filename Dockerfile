@@ -3,12 +3,12 @@ FROM python:3.13-slim
 
 # Label the image with metadata
 # This helps with image identification and compliance
-LABEL org.opencontainers.image.title="jingen" \
-      org.opencontainers.image.description="CLI tool for templating Jinja templates with YAML values" \
-      org.opencontainers.image.version="0.1.0" \
-      org.opencontainers.image.source="https://github.com/devopsgroupeu/JinGen" \
-      org.opencontainers.image.authors="Andrej Rabek <andrej.rabek@devopsgroup.sk>" \
-      org.opencontainers.image.licenses="Apache-2.0"
+LABEL org.opencontainers.image.title="jingen"
+LABEL org.opencontainers.image.description="CLI tool for templating Jinja templates with YAML values"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.source="https://github.com/devopsgroupeu/JinGen"
+LABEL org.opencontainers.image.authors="Andrej Rabek <andrej.rabek@devopsgroup.sk>"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 # Set the working directory inside the container
 WORKDIR /app
