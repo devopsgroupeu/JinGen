@@ -26,8 +26,7 @@ Python app for templating Jinja templates with YAML values.
 python3 src/main.py \
     --input-dir ~/my-local-templates/ \
     --output-dir ./output \
-    --data-files ~/data/00_base.yaml \
-        ~/data/10_override.yaml
+    --data-files ~/data/00_base.yaml ~/data/10_override.yaml
 ```
 
 #### With git repository as source of template files
@@ -39,15 +38,20 @@ python3 src/main.py \
     --branch main \
     --input-dir templates/ \    # location of templates in repository
     --output-dir ./output \
-    --data-files ~/data/00_base.yaml \
-        ~/data/10_override.yaml
+    --data-files ~/data/00_base.yaml  ~/data/10_override.yaml
 ```
 
 ### Docker
 
 ```sh
 docker run --rm \
-    ghcr.io/devopsgroupeu/jingen:latest
+    -v ~/my-local-templates:/templates \
+    -v ~/data:/data \
+    -v "$(pwd)/output":/output \
+    ghcr.io/devopsgroupeu/jingen:latest \
+    --input-dir /templates \
+    --output-dir /output \
+    --data-files /data/00_base.yaml /data/10_override.yaml
 ```
 
 ## 📜 License

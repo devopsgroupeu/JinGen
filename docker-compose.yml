@@ -1,7 +1,14 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  statecraft:
+  jingen:
     image: ghcr.io/devopsgroupeu/jingen:latest
+    container_name: jingen
+    volumes:
+      - ~/my-local-templates:/templates
+      - ~/data:/data
+      - ./output:/output
     command: >
-      xxx
+      --input-dir /templates
+      --output-dir /output
+      --data-files /data/00_base.yaml /data/10_override.yaml
