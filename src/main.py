@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
-import logging
 import argparse
+import logging
 import shutil
 import sys
 from pathlib import Path
-import yaml
-from jinja2 import Environment, FileSystemLoader, exceptions
-import copy
-import json
 
-from logs import logger, setLoggingLevel, green, yellow, red, greenBack
-from templating import load_and_merge_data, process_templates, process_non_template_files
 from git import clone_repository
-
+from logs import green, greenBack, logger, red, setLoggingLevel, yellow
+from templating import (
+    load_and_merge_data,
+    process_non_template_files,
+    process_templates,
+)
 
 # --- Configuration ---
 DEFAULT_TEMPLATE_SUFFIX = ".j2"
@@ -37,6 +36,7 @@ BANNER_ART = r"""
 
 """
 
+
 def display_banner():
     """Prints the ASCII art banner."""
     print(BANNER_ART)
@@ -48,6 +48,7 @@ def print_section_header(title):
     print("=" * 105)
     print(f"=> {title.upper()}")
     print("=" * 105)
+
 
 def cleanup_temp_files(temp_path):
     """Cleans up temporary files and directories. (also hidden files)"""
@@ -110,12 +111,13 @@ def main():
         help="Directory where the rendered Terraform files (*.tf) will be saved.",
     )
     parser.add_argument(
-        "-d", "--data-files",
+        "-d",
+        "--data-files",
         type=Path,
         required=True,
-        nargs='+',            # Accept one or more values
-        metavar='DATA_FILE',  # Display nicer variable name in help
-        help="One or more paths to YAML data files. Values from later files override earlier ones during merge."
+        nargs="+",  # Accept one or more values
+        metavar="DATA_FILE",  # Display nicer variable name in help
+        help="One or more paths to YAML data files. Values from later files override earlier ones during merge.",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
 
@@ -147,14 +149,12 @@ def main():
         if args.source == "git":
             print_section_header("Cloning Git Repository")
             clone_repository(
-                repo_url=args.repo_url,
-                clone_path="temp/",
-                branch=args.branch
+                repo_url=args.repo_url, clone_path="temp/", branch=args.branch
             )
             INPUT_DIR = Path(f"temp/{args.input_dir}")
         else:
             INPUT_DIR = args.input_dir
-        
+
         # 1. Load and Merge Data (pass the list of files)
         print_section_header("Data files merging")
         template_data = load_and_merge_data(args.data_files)
@@ -174,7 +174,7 @@ def main():
         # Errors logged within functions, just exit cleanly
         logger.critical(red(f"Script terminated due to an error: {e}"))
         sys.exit(1)
-    
+
     finally:
         # Cleanup temporary files if they were created
         print_section_header("Cleaning up temporary files")

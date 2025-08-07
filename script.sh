@@ -1,6 +1,5 @@
-# TerraForge
+#! /usr/bin/env bash
 
-```sh
 python3 src/main.py \
        --debug \
        --source git \
@@ -14,4 +13,3 @@ python3 src/main.py \
                     03_premium.yaml \
                     04_addons.yaml \
                     10_override.yaml
-```

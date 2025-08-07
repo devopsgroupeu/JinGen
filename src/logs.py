@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 
 import logging
-import sys
-from colorama import init, Fore, Back
 
-# --- Initialize colorama ---
-init(autoreset=True)
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.text import Text
 
 # --- Configuration ---
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 LOG_LEVEL = logging.INFO  # Change to logging.DEBUG for more verbose output
 
 # --- Logging Setup ---
-logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT, stream=sys.stdout)
 file_handler = logging.FileHandler("terraforge.log")
 file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-logging.getLogger().addHandler(file_handler)
+
+handlers = [RichHandler(), file_handler]
+
+logging.basicConfig(level=LOG_LEVEL, handlers=handlers)
 
 logger = logging.getLogger(__name__)  # Use __name__ for logger identification
+
+# --- Console Setup ---
+console = Console()
 
 
 def setLoggingLevel(level: int):
@@ -25,23 +29,24 @@ def setLoggingLevel(level: int):
     logger.setLevel(level)
     for handler in logger.handlers:
         handler.setLevel(level)
-    logger.info(f"Logging level set to {level.name}")
+    logger.info(f"Logging level set to {logging.getLevelName(level)}")
 
 
 def green(message: str):
-    """Prints a message in green color."""
-    return Fore.GREEN + message
+    """Returns a message styled in green color."""
+    return Text(message, style="green")
 
 
 def yellow(message: str):
-    """Prints a message in yellow color."""
-    return Fore.YELLOW + message
+    """Returns a message styled in yellow color."""
+    return Text(message, style="yellow")
 
 
 def red(message: str):
-    """Prints a message in red color."""
-    return Fore.RED + message
+    """Returns a message styled in red color."""
+    return Text(message, style="red")
+
 
 def greenBack(message: str):
-    """Prints a message in magenta color."""
-    return Back.GREEN + message + Back.RESET
+    """Returns a message with green background."""
+    return Text(message, style="on green")

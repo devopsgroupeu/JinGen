@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-import argparse
-import logging
-import sys
-from pathlib import Path
-import yaml
-from jinja2 import Environment, FileSystemLoader, exceptions
 import copy
 import json
+import logging
+from pathlib import Path
 
-from logs import logger, green, yellow, red
+import yaml
+from jinja2 import Environment, FileSystemLoader, exceptions
+
+from logs import green, logger, red, yellow
 
 # --- Configuration ---
 DEFAULT_TEMPLATE_SUFFIX = ".j2"
@@ -113,7 +112,7 @@ def load_and_merge_data(data_file_paths: list[Path]) -> dict:
 
 def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
     """Finds, renders, and writes Jinja templates."""
-    logger.info(f"Starting template processing...")
+    logger.info("Starting template processing...")
     logger.info(f"Input directory: {input_dir.resolve()}")
     logger.info(f"Output directory: {output_dir.resolve()}")
 
@@ -248,9 +247,11 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
         if (
             templates_processed_successfully + templates_skipped
         ) < template_files_found:
-            logger.warning(yellow(
-                f"{template_files_found - templates_processed_successfully} templates failed to process."
-            ))
+            logger.warning(
+                yellow(
+                    f"{template_files_found - templates_processed_successfully} templates failed to process."
+                )
+            )
     else:
         logger.warning(
             yellow(
@@ -261,7 +262,7 @@ def process_templates(input_dir: Path, output_dir: Path, template_data: dict):
 
 def process_non_template_files(input_dir: Path, output_dir: Path):
     """Finds and copy other files."""
-    logger.info(f"Starting copying non-template files ...")
+    logger.info("Starting copying non-template files ...")
     logger.info(f"Input directory: {input_dir.resolve()}")
     logger.info(f"Output directory: {output_dir.resolve()}")
 

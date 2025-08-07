@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import subprocess
 import os
+import subprocess
 
-from logs import logger, green, yellow, red
+from logs import green, logger, red
 
 
 def clone_repository(repo_url, clone_path, branch=None, username=None, pat=None):
